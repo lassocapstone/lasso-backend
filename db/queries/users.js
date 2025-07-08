@@ -12,9 +12,9 @@ export async function createUser(
 ) {
   const sql = `
   INSERT INTO users
-    (name, username, password, account_type, contact_number, role, status)
+    (name, username, password, account_type, contact_number, role, status, emergency_contact_id)
   VALUES
-    ($1, $2, $3, $4, $5, $6, $7)
+    ($1, $2, $3, $4, $5, $6, $7, $8)
   RETURNING *
   `;
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -28,6 +28,7 @@ export async function createUser(
     contact_number,
     role,
     status,
+    emergency_contact_id,
   ]);
   return user;
 }
