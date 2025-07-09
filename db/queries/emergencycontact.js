@@ -6,7 +6,7 @@ export async function createEmergencyContact(
   relationship
 ) {
   const SQL =
-    "INSERT INTO emergency_contact (contact_number, name, relationship) VALUES $1, $2,$3 RETURNING *";
+    "INSERT INTO emergency_contact (contact_number, name, relationship) VALUES ($1, $2,$3) RETURNING *";
 
   const {
     rows: [emergencyContact],

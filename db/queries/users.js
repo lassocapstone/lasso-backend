@@ -8,7 +8,8 @@ export async function createUser(
   account_type,
   contact_number,
   role,
-  status
+  status,
+  emergency_contact_id
 ) {
   const sql = `
   INSERT INTO users
