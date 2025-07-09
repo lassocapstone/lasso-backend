@@ -1,5 +1,4 @@
 import db from "#db/client";
-import bcrypt from "bcrypt";
 
 export const createEvent = async (organizerId) => {
   const sql = `
