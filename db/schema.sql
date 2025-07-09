@@ -15,6 +15,7 @@ CREATE TABLE emergency_contact (
 
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
+  name VARCHAR(30) NOT NULL, 
   username VARCHAR(30) NOT NULL UNIQUE,
   password VARCHAR(30) NOT NULL,
   account_type CHAR(3) NOT NULL,
