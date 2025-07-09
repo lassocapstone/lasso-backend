@@ -10,7 +10,7 @@ CREATE TABLE emergency_contact (
   id SERIAL PRIMARY KEY,
   contact_number CHAR(10) NOT NULL,
   name VARCHAR(30) NOT NULL,
-  relationship VARCHAR(30) NOT NULL
+  relationship VARCHAR(30)
 );
 
 CREATE TABLE users (
@@ -38,14 +38,14 @@ CREATE TABLE subordinates_events (
 
 CREATE TABLE managers_events (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  manager_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE
 );
 
 CREATE TABLE alerts (
   id SERIAL PRIMARY KEY,
   is_okay BOOLEAN NOT NULL,
-  name VARCHAR(30) NOT NULL,
+  name VARCHAR(50) NOT NULL,
   message TEXT NOT NULL,
   event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
   sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE
