@@ -1,5 +1,6 @@
 import db from "#db/client";
 import { createUser } from "#db/queries/users";
+import { createEmergencyContact } from "#db/queries/emergencycontact";
 import { faker } from "@faker-js/faker";
 await db.connect();
 await seed();
@@ -7,6 +8,8 @@ await db.end();
 console.log("🌱 Database seeded.");
 
 async function seed() {
+  //as of current every user has the same emergency contact at id 1.
+  await createEmergencyContact("5555555555", faker.person.fullName(), "family");
   await createUser(
     faker.person.fullName(),
     faker.internet.username(),
