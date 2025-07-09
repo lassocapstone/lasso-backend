@@ -18,7 +18,7 @@ CREATE TABLE users (
   name VARCHAR(30) NOT NULL, 
   username VARCHAR(30) NOT NULL UNIQUE,
   password VARCHAR(98) NOT NULL,
-  account_type CHAR(3) NOT NULL,
+  account_type CHAR(3),
   contact_number CHAR(10) NOT NULL,
   role VARCHAR(30),
   status BOOLEAN,
