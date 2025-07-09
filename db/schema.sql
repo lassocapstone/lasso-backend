@@ -27,6 +27,7 @@ CREATE TABLE users (
 
 CREATE TABLE events (
   id SERIAL PRIMARY KEY,
+  name VARCHAR(50) NOT NULL,
   organizer_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE
 );
 
