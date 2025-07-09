@@ -8,7 +8,7 @@ console.log("🌱 Database seeded.");
 
 async function seed() {
   await createUser(
-    faker.person.fullname(),
+    faker.person.fullName(),
     faker.internet.username(),
     "password",
     "org",
@@ -17,7 +17,7 @@ async function seed() {
 
   for (let i = 1; i < 4; i++) {
     await createUser(
-      faker.person.fullname(),
+      faker.person.fullName(),
       faker.internet.username(),
       "password",
       "man",
@@ -27,7 +27,7 @@ async function seed() {
 
   for (let i = 1; i < 10; i++) {
     await createUser(
-      faker.person.fullname(),
+      faker.person.fullName(),
       faker.internet.username(),
       "password",
       "sub",
