@@ -17,7 +17,7 @@ CREATE TABLE users (
   id SERIAL PRIMARY KEY,
   name VARCHAR(30) NOT NULL, 
   username VARCHAR(30) NOT NULL UNIQUE,
-  password VARCHAR(30) NOT NULL,
+  password VARCHAR(98) NOT NULL,
   account_type CHAR(3) NOT NULL,
   contact_number CHAR(10) NOT NULL,
   role VARCHAR(30),
