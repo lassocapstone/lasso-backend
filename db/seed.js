@@ -3,6 +3,11 @@ import { createUser } from "#db/queries/users";
 import { createEvent } from "#db/queries/events";
 import { createAlert } from "#db/queries/alerts";
 import { createTask } from "#db/queries/tasks";
+import {
+  createSubordinatesEvents,
+  getSubordinatesByEventId,
+} from "#db/queries/subordinatesEvents";
+import { createManagersEvents } from "#db/queries/managersEvents";
 import { createEmergencyContact } from "#db/queries/emergencycontact";
 import { faker } from "@faker-js/faker";
 await db.connect();
@@ -89,4 +94,10 @@ async function seed() {
     "At the museum",
     "count your group members and report all good on task"
   );
+
+  await createManagersEvents(2, 1);
+  await createManagersEvents(3, 1);
+
+  await createSubordinatesEvents(5, 1, 2);
+  await createSubordinatesEvents(6, 2, 3);
 }
