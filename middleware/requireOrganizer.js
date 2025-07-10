@@ -1,4 +1,4 @@
-export default requireOrganizer = async (req, res, next) => {
+export default requireOrganizer = (req, res, next) => {
   const { accountType } = req.user;
 
   //if role is not an organizer

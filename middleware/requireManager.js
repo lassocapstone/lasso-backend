@@ -1,4 +1,4 @@
-export default requireManager = async (req, res, next) => {
+export default requireManager = (req, res, next) => {
   const { accountType } = req.user;
 
   //if role is not a manager
