@@ -96,7 +96,7 @@ async function seed() {
   );
 
   await createManagersEvents(2, 1);
-  await createManagersEvents(3, 1);
+  await createManagersEvents(3, 2);
 
   await createSubordinatesEvents(5, 1, 2);
   await createSubordinatesEvents(6, 2, 3);
