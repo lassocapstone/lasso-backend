@@ -1,7 +1,8 @@
 import db from "#db/client";
-import { createUser } from "#db/queries/users";
+import { createUser, getUserById } from "#db/queries/users";
 import { createEmergencyContact } from "#db/queries/emergencycontact";
 import { faker } from "@faker-js/faker";
+
 await db.connect();
 await seed();
 await db.end();
@@ -38,3 +39,9 @@ async function seed() {
     );
   }
 }
+
+
+
+
+
+
