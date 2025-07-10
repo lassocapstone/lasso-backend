@@ -15,7 +15,7 @@ router
   .route("/events")
   .get(
     async (req, res) => {
-      const {id: userId, accountType} = req.body;
+      const {id: userId, accountType} = req.user;
       
       let events;
       switch(accountType){
@@ -39,5 +39,17 @@ router
 
       const newEvent = await createEvent(name, startTime, endTime, location, organizerId);
       res.send(newEvent);
+    }
+  )
+
+router.
+  route("/events:id")
+  .get(
+    async (req, res) => {
+      const {id} = req.params;
+      const {id: userId} = req.user;
+
+
+      const event = await getEventById(id);
     }
   )
