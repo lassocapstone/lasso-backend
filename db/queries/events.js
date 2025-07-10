@@ -1,13 +1,13 @@
 import db from "#db/client";
 
-export const createEvent = async (name, organizerId) => {
+export const createEvent = async (name, startTime, endTime, location, organizerId) => {
   const sql = `
-    INSERT INTO events (name, organizer_id)
-    VALUES ($1, $2)
+    INSERT INTO events (name, start_time, end_time, location, organizer_id)
+    VALUES ($1, $2, $3, $4, $5)
     RETURNING *;
   `;
 
-  const { rows: [newEvent] } = await db.query(sql, [name, organizerId]);
+  const { rows: [newEvent] } = await db.query(sql, [name, startTime, endTime, location, organizerId]);
   return newEvent;
 }
 
