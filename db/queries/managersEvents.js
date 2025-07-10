@@ -20,8 +20,8 @@ export const createManagersEvents = async (managerId, eventId) => {
 
 export const getManagersByEventId = async (eventId) => {
   const sql = `
-    SELECT managers.* FROM managers
-    JOIN managers_events ON managers.id = managers_events.manager_id
+    SELECT users.* FROM users
+    JOIN managers_events ON users.id = managers_events.manager_id
     JOIN events ON events.id = managers_events.event_id
     WHERE events.id = $1;
   `;
@@ -34,8 +34,8 @@ export const getEventsByManagerId = async (managerId) => {
   const sql = `
     SELECT events.* FROM events
     JOIN managers_events ON events.id = managers_events.event_id
-    JOIN managers ON managers.id = managers_events.manager_id
-    WHERE managers.id = $1;
+    JOIN users ON users.id = managers_events.manager_id
+    WHERE users.id = $1;
   `;
 
   const {rows: managers} = await db.query(sql, [managerId])
