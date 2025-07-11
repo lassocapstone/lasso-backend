@@ -38,8 +38,8 @@ export const getEventsByManagerId = async (managerId) => {
     WHERE users.id = $1;
   `;
 
-  const {rows: managers} = await db.query(sql, [managerId])
-  return managers;
+  const {rows: events} = await db.query(sql, [managerId])
+  return events;
 }
 
 export const deleteManagerEventByManagerId = async (managerId) => {
