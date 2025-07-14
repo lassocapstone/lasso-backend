@@ -11,6 +11,7 @@ export async function createUser(
   status,
   emergency_contact_id
 ) {
+
   const sql = `
   INSERT INTO users
     (name, username, password, account_type, contact_number, role, status, emergency_contact_id)

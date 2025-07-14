@@ -19,7 +19,7 @@ export const createAlert = async (isOkay, name, message, eventId, senderId) => {
     RETURNING *;
   `;
 
-  const {rows: [newAlert]} = await db.query(sql, [isOkay, name, message, eventId, senderId]);
+  const { rows: [newAlert] } = await db.query(sql, [isOkay, name, message, eventId, senderId]);
   return newAlert;
 }
 
@@ -29,7 +29,8 @@ export const getAlertById = async (id) => {
     WHERE id = $1;
   `;
 
-  const {rows: [alert]} = await db.query(sql, [id]);
+  const { rows: [alert] } = await db.query(sql, [id]);
+  console.log(alert);
   return alert;
 }
 
@@ -39,7 +40,7 @@ export const getAlertsByEvent = async (eventId) => {
     WHERE event_id = $1;
   `;
 
-  const {rows: events} = await db.query(sql, [eventId]);
+  const { rows: events } = await db.query(sql, [eventId]);
   return events;
 }
 
@@ -49,17 +50,36 @@ export const getAlertsBySender = async (senderId) => {
     WHERE sender_id = $1;
   `;
 
-  const {rows: events} = await db.query(sql, [senderId]);
+  const { rows: events } = await db.query(sql, [senderId]);
   return events;
 }
 
-export const deleteEventById = async (id) => {
+export const deleteAlertById = async (id) => {
   const sql = `
-    DELETE FROM events
+    DELETE FROM alerts
     WHERE id = $1
     RETURNING *;
   `;
 
-  const {rows: [deletedEvent]} = await db.query(sql, [id]);
-  return deletedEvent;
+  const { rows: [deletedAlert] } = await db.query(sql, [id]);
+  return deletedAlert;
+}
+
+//for patch request
+export const updateAlert = async (data) => {
+  // destructure id and rest of fields from data object
+  const { id, ...fieldstoUpdate } = data;
+  // getting keys from actual fields to update
+  const keys = Object.keys(fieldstoUpdate);
+  if (keys.length === 0) return 'nothing to update';
+  const setClause = keys.map((key, index) => `${key} = $${index + 2}`).join(', ');
+  const setValues = [id, ...keys.map((key) => fieldstoUpdate[key])];
+  const sql = `
+    UPDATE alerts
+    SET ${setClause}
+    WHERE id=$1
+    RETURNING *
+  `;
+  const { rows: [updatedAlert] } = await db.query(sql, setValues);
+  return updatedAlert;
 }
