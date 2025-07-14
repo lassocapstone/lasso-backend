@@ -3,11 +3,11 @@ const tasksRouter = express.Router();
 export default tasksRouter;
 import db from "#db/client";
 import { getTaskById } from "#db/queries/tasks";
-import { deleteEventById } from "#db/queries/events";
+import { deleteTaskById } from "#db/queries/tasks";
 import requireUser from "#middleware/requireUser";
 import { getEventById } from "#db/queries/events";
 
-router.get("/", async (req, res, next) => {
+tasksRouter.get("/", async (req, res, next) => {
   const { eventId } = req.query;
   const userId = req.user.id;
 
@@ -40,7 +40,7 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-router.post("/", async (req, res, next) => {
+tasksRouter.post("/", async (req, res, next) => {
   const { name, location, startTime, endTime, eventId, instructions } =
     req.body;
   const userId = req.user.id;
@@ -87,7 +87,7 @@ router.post("/", async (req, res, next) => {
   }
 });
 
-router.get("/:id", async (req, res, next) => {
+tasksRouter.get("/:id", async (req, res, next) => {
   const taskId = Number(req.params.id);
   const userId = req.user.id;
 
@@ -117,7 +117,7 @@ router.get("/:id", async (req, res, next) => {
   }
 });
 
-router.patch("/:id", async (req, res, next) => {
+tasksRouter.patch("/:id", async (req, res, next) => {
   const taskId = Number(req.params.id);
   const userId = req.user.id;
   const { name, location, startTime, endTime, eventId, instructions } =
@@ -178,6 +178,31 @@ router.patch("/:id", async (req, res, next) => {
     );
 
     res.status(200).json(updatedTask);
+  } catch (err) {
+    next(err);
+  }
+});
+
+tasksRouter.delete("/:id", async (req, res, next) => {
+  const taskId = Number(req.params.id);
+  const userId = req.user.id;
+
+  try {
+    const task = await getTaskById(taskId);
+    if (!task) return res.status(404).json({ error: "Task not found" });
+
+    const event = await getEventById(task.event_id);
+    if (!event)
+      return res.status(404).json({ error: "Associated event not found" });
+
+    if (event.organizer_id !== userId) {
+      return res
+        .status(403)
+        .json({ error: "Only the organizer can delete this task" });
+    }
+
+    await deleteTaskById(taskId);
+    res.sendStatus(204);
   } catch (err) {
     next(err);
   }
