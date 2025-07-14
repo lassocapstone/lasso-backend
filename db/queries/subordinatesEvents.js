@@ -56,7 +56,7 @@ export const getSubordinatesByEventId = async (eventId) => {
   return subordinates;
 }
 
-export const updateSubordinateManagerByManagerId = async (oldManagerId, newManagerId) => {
+export const updateSubordinateManagerByManagerId = async (newManagerId, oldManagerId) => {
   const sql = `
     UPDATE subordinates_events
       SET manager_id = $1
