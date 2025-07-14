@@ -23,12 +23,29 @@ export const getEventById = async (id) => {
 
 export const getEventsByOrganizer = async (organizerId) => {
   const sql = `
-    SELECT * FROM event
+    SELECT * FROM events
     WHERE organizer_id = $1;
   `;
 
   const { rows: events } = await db.query(sql, [organizerId]);
   return events;
+}
+
+export const updateEventById = async (eventId, name, startTime, endTime, location, organizerId) => {
+  const sql = `
+    UPDATE events
+      SET 
+        name = $1,
+        start_time = $2,
+        end_time = $3,
+        location = $4,
+        organizer_id = $5
+      WHERE events.id = $6
+    RETURNING *;
+  `;
+
+  const { rows: updatedEvent } = await db.query(sql, [name, startTime, endTime, location, organizerId, eventId]);
+  return updatedEvent;
 }
 
 export const deleteEventById = async (id) => {
