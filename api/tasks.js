@@ -2,6 +2,10 @@ import express from "express";
 const tasksRouter = express.Router();
 export default tasksRouter;
 import db from "#db/client";
+import { getTaskById } from "#db/queries/tasks";
+import { deleteEventById } from "#db/queries/events";
+import requireUser from "#middleware/requireUser";
+import { getEventById } from "#db/queries/events";
 
 router.get("/", async (req, res, next) => {
   const { eventId } = req.query;
@@ -78,6 +82,36 @@ router.post("/", async (req, res, next) => {
       instructions
     );
     res.status(201).json(newTask);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/:id", async (req, res, next) => {
+  const taskId = Number(req.params.id);
+  const userId = req.user.id;
+
+  try {
+    const task = await getTaskById(taskId);
+    if (!task) return res.status(404).json({ error: "Task not found" });
+
+    const { rows: access } = await db.query(
+      `
+      SELECT 1 FROM events
+      WHERE id = $1 AND (
+        organizer_id = $2
+        OR $2 IN (SELECT manager_id FROM managers_events WHERE event_id = $1)
+        OR $2 IN (SELECT subordinate_id FROM subordinates_events WHERE event_id = $1)
+      )
+    `,
+      [task.event_id, userId]
+    );
+
+    if (access.length === 0) {
+      return res.status(403).json({ error: "Not authorized for this event" });
+    }
+
+    res.json(task);
   } catch (err) {
     next(err);
   }
