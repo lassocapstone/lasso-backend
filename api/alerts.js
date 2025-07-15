@@ -1,47 +1,53 @@
-import { createAlert, deleteAlertById, getAlertById, getAlertsByEvent, getAlertsBySender, updateAlert } from "#db/queries/alerts";
-import requireManagerOrOrganizer from "#middleware/requireManagerOrOrganizer";
-import requireBody from "#middleware/requireBody";
 import express from "express";
-const alertsRouter = express.Router();
+const router = express.Router();
+export default router;
 
-alertsRouter.use(requireManagerOrOrganizer);
-//or organizer
+import { createAlert, deleteAlertById, getAlertById, getAlertsByEvent, getAlertsBySender, updateAlertById } from "#db/queries/alerts";
+import requireAdmin from "#middleware/requireAdmin";
+import requireBody from "#middleware/requireBody";
 
-alertsRouter.get('/', async (req, res) => {
-  const alertsByUser = await getAlertsBySender(req.user.id);
-  if (!alertsByUser) return res.status(404).send('Alert Not Found');
-  res.send(alertsByUser);
+//check if the alert exists; end the code if it doesn't
+//attach the gotten alert if it does
+import requireAlert from "#middleware/requireAlert";
+
+router.use(requireAdmin);
+
+router.route("/")
+  .get(
+    async (req, res) => {
+      const alertsByUser = await getAlertsBySender(req.user.id);
+      res.send(alertsByUser);
+})
+  .post(
+    requireBody(["isOkay", "name", "message", "eventId"]),
+    async (req, res) => {
+      const { isOkay, name, message, eventId } = req.body;
+      const createdAlert = await createAlert(isOkay, name, message, eventId, req.user.id);
+      res.status(201).send(createdAlert);
 });
 
-alertsRouter.post('/', requireBody(["is_okay", "name", "message", "event_id"]), async (req, res) => {
-  const { is_okay, name, message, event_id } = req.body;
-  const createdAlert = await createAlert(is_okay, name, message, event_id, req.user.id);
-  res.status(201).send(createdAlert);
-});
+router.route("/:alertId")
+  .get(
+    requireAlert,
+    async (req, res) => {
+      const {alertId} = req.params;
+      const alert = await getAlertById(alertId);
+      res.send(alert);
+})
+  .put(
+    requireAlert,
+    requireBody(["isOkay", "name", "message", "eventId", "senderId"]),
+    async (req, res) => {
+      const {isOkay, name, message, eventId, senderId} = req.body;
+      const {alertId} = req.params;
 
-alertsRouter.get('/:id', async (req, res) => {
-  const alert = await getAlertById(req.params.id);
-  if (!alert) return res.status(404).send('Alert Not Found');
-  if (req.user.id !== alert.sender_id) return res.status(403).send('Forbidden: Not Your Alert');
-  res.send(alert);
+      const updatedAlert = await updateAlertById(alertId, isOkay, name, message, eventId, senderId);
+      res.send(updatedAlert);
+  })
+  .delete(
+    requireAlert, 
+    async (req, res) => {
+      const {alertId} = req.params;
+      const deletedAlert = await deleteAlertById(alertId);
+      res.status(204).send(deletedAlert);
 });
-
-alertsRouter.patch('/:id', async (req, res) => {
-  const alert = await getAlertById(req.params.id);
-  if (!alert) return res.status(404).send('Alert Not Found');
-  if (req.user.id !== alert.sender_id) return res.status(403).send('Forbidden: Not Your Alert');
-  const updates = req.body;
-  updates.id = req.params.id;
-  const newPatch = await updateAlert(updates);
-  res.send(newPatch);
-});
-
-alertsRouter.delete('/:id', async (req, res) => {
-  const alert = await getAlertById(req.params.id);
-  if (!alert) res.status(404).send('Alert Not Found');
-  if (req.user.id !== alert.sender_id) return res.status(403).send('Forbidden: Not Your Alert');
-  const deletedAlert = await deleteAlertById(req.params.id);
-  res.status(204).send(deletedAlert);
-});
-
-export default alertsRouter;

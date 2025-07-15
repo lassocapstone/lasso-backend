@@ -65,21 +65,18 @@ export const deleteAlertById = async (id) => {
   return deletedAlert;
 }
 
-//for patch request
-export const updateAlert = async (data) => {
-  // destructure id and rest of fields from data object
-  const { id, ...fieldstoUpdate } = data;
-  // getting keys from actual fields to update
-  const keys = Object.keys(fieldstoUpdate);
-  if (keys.length === 0) return 'nothing to update';
-  const setClause = keys.map((key, index) => `${key} = $${index + 2}`).join(', ');
-  const setValues = [id, ...keys.map((key) => fieldstoUpdate[key])];
-  const sql = `
+export const updateAlertById = async (alertId, isOkay, name, message, eventId, senderId) => {
+   const sql = `
     UPDATE alerts
-    SET ${setClause}
-    WHERE id=$1
+    SET 
+      is_okay = $2,
+      name = $3,
+      message = $4,
+      event_id = $5,
+      sender_id = $6
+    WHERE id = $1
     RETURNING *
   `;
-  const { rows: [updatedAlert] } = await db.query(sql, setValues);
+  const { rows: [updatedAlert] } = await db.query(sql, [alertId, isOkay, name, message, eventId, senderId]);
   return updatedAlert;
 }
