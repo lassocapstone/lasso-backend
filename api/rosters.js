@@ -1,445 +1,125 @@
-import requireUser from "#middleware/requireUser";
-import { getEventById } from "#db/queries/events";
-import db from "#db/client";
 import express from "express";
 const rostersRouter = express.Router();
-export default rostersRouter;
+import {
+  getManagersByEventId,
+  getEventsByManagerId,
+  createManagersEvents,
+  deleteManagerEventByManagerId,
+} from "#db/queries/managersEvents";
+import {
+  getSubordinatesByEventId,
+  createSubordinatesEvents,
+  deleteSubordinateEventBySubordinateId,
+  getSubordinatesByManagerId,
+} from "#db/queries/subordinatesEvents";
+import requireUser from "#db/middleware/requireUser";
+import { getEventById } from "#db/queries/events";
+import { getEventsByOrganizer } from "#db/queries/events";
+import requireOrganizer from "#middleware/requireOrganizer";
 
 rostersRouter.use(requireUser);
 
 rostersRouter.get("/", async (req, res, next) => {
+  const { id: userId, account_type: accountType } = req.user;
   const { eventId } = req.query;
-  const userId = req.user.id;
-  const accountType = req.user.account_type;
+  if (!eventID) {
+    return res.status(400).send("Missing Event Id");
+  }
+  const event = getEventById(eventId);
+  if (!event) {
+    return res.status(404).send("Event Not Found");
+  }
 
-  try {
-    const event = await getEventById(eventId);
-    if (!event) {
-      return res.status(404).json({ error: "Event not found" });
+  if (accountType === "org") {
+    const isOrganizer = getEventsByOrganizer(userId);
+    if (!isOrganizer) {
+      return res.status(403).send("You are not part of this event");
     }
+  }
 
-    const { rows: access } = await db.query(
-      `
-      SELECT 1 FROM events
-      WHERE id = $1 AND (
-        organizer_id = $2
-        OR $2 IN (SELECT manager_id FROM managers_events WHERE event_id = $1)
-        OR $2 IN (SELECT subordinate_id FROM subordinates_events WHERE event_id = $1)
-      )
-    `,
-      [eventId, userId]
-    );
-
-    if (access.length === 0) {
-      return res.status(403).json({ error: "You are not part of this event" });
+  if (accountType === "man") {
+    const isManager = getEventsByManagerId(userId);
+    if (!isManager) {
+      return res.status(403).send("You are not part of this event");
     }
+  }
 
-    if (accountType === "ORG") {
-      const { rows: users } = await db.query(
-        `
-        SELECT u.*
-        FROM users u
-        WHERE u.id = $1
-          OR u.id IN (SELECT manager_id FROM managers_events WHERE event_id = $2)
-          OR u.id IN (SELECT subordinate_id FROM subordinates_events WHERE event_id = $2)
-      `,
-        [event.organizer_id, eventId]
-      );
-      return res.json(users);
-    }
-
-    if (accountType === "MAN") {
-      const { rows: users } = await db.query(
-        `
-        SELECT u.name
-        FROM users u
-        WHERE u.id = $1
-          OR u.id IN (SELECT manager_id FROM managers_events WHERE event_id = $2)
-          OR u.id IN (SELECT subordinate_id FROM subordinates_events WHERE event_id = $2)
-      `,
-        [event.organizer_id, eventId]
-      );
-      return res.json(users);
-    }
-
-    return res
-      .status(403)
-      .json({ error: "Insufficient permissions to view roster" });
-  } catch (err) {
-    next(err);
+  let roster;
+  switch (accountType) {
+    case "org":
+      roster = [
+        await getManagersByEventId(eventId),
+        await getSubordinatesByEventId(eventId),
+      ];
+      break;
+    case "man":
+      roster = await getSubordinatesByEventId(eventId);
+      break;
+    case "sub":
+      roster = res.status(403).send("You do not have access to the roster");
+      break;
   }
 });
 
-rostersRouter.post("/", async (req, res, next) => {
+rostersRouter.use(requireOrganizer);
+
+rostersRouter.post("/", async (req, res) => {
   const { eventId, userId, managerId } = req.body;
   const requesterId = req.user.id;
-
-  if (
-    !eventId ||
-    !userId ||
-    typeof eventId !== "number" ||
-    typeof userId !== "number"
-  ) {
-    return res.status(400).json({
-      error:
-        "Malformed body: eventId and userId are required and must be integers",
-    });
+  if (!Number.isInteger(eventId) || !Number.isInteger(userId)) {
+    return res.status(400).send("Malformed Request");
+  }
+  const event = await getEventById(eventId);
+  if (!event) {
+    return res.status(404).send("Event not found");
+  }
+  if (event.organizer_id !== requesterId) {
+    return res.status(403).send("Only the event organizer can add users");
   }
 
-  try {
-    const event = await getEventById(eventId);
-    if (!event) {
-      return res.status(404).json({ error: "Event not found" });
+  if (user.account_type === "man") {
+    await createManagersEvents(userId, eventId);
+    return res.status(201).send("Manager Added");
+  }
+
+  if (user.account_type === "sub") {
+    if (!Number.isInteger(managerId)) {
+      return res.status(400).send("Missing or invalid manager Id");
     }
-
-    if (event.organizer_id !== requesterId) {
-      return res
-        .status(403)
-        .json({ error: "Only the organizer can modify the roster" });
-    }
-
-    const {
-      rows: [userToAdd],
-    } = await db.query(
-      `
-      SELECT id, account_type FROM users WHERE id = $1
-    `,
-      [userId]
-    );
-
-    if (!userToAdd) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    if (userToAdd.account_type === "ORG") {
-      return res
-        .status(400)
-        .json({ error: "Cannot add another organizer to an event" });
-    }
-
-    if (userToAdd.account_type === "MAN") {
-      const {
-        rows: [added],
-      } = await db.query(
-        `
-        INSERT INTO managers_events (manager_id, event_id)
-        VALUES ($1, $2)
-        ON CONFLICT (manager_id, event_id) DO NOTHING
-        RETURNING *;
-      `,
-        [userId, eventId]
-      );
-
-      return res
-        .status(201)
-        .json({ message: "Manager added to event", data: added });
-    }
-
-    if (userToAdd.account_type === "SUB") {
-      if (!managerId || typeof managerId !== "number") {
-        return res
-          .status(400)
-          .json({ error: "Missing or invalid managerId for subordinate" });
-      }
-
-      const {
-        rows: [added],
-      } = await db.query(
-        `
-        INSERT INTO subordinates_events (subordinate_id, event_id, manager_id)
-        VALUES ($1, $2, $3)
-        RETURNING *;
-      `,
-        [userId, eventId, managerId]
-      );
-
-      return res
-        .status(201)
-        .json({ message: "Subordinate added to event", data: added });
-    }
-
-    return res.status(400).json({ error: "Unrecognized account type" });
-  } catch (err) {
-    next(err);
+    await createSubordinatesEvents(userId, eventId, managerId);
+    return res.status(201).send("Subordinate Added");
   }
 });
 
 rostersRouter.delete("/", async (req, res, next) => {
-  const { eventId, userId } = req.body;
-  const requesterId = req.user.id;
+  const { userId } = req.body;
 
-  if (!eventId || !userId) {
-    return res.status(400).json({ error: "Missing eventId or userId" });
+  const user = await getUserById(userId);
+  if (!user) {
+    return res.status(404).send("User not found");
   }
 
-  try {
-    const event = await getEventById(eventId);
-    if (!event) {
-      return res.status(404).json({ error: "Event not found" });
-    }
-
-    if (event.organizer_id !== requesterId) {
+  if (user.account_type === "man") {
+    const subordinates = await getSubordinatesByManagerId(userId);
+    if (subordinates.length > 0) {
       return res
-        .status(403)
-        .json({ error: "Only the organizer can remove users" });
+        .status(400)
+        .send("Cannot remove manager with assigned subordinates");
     }
-
-    const {
-      rows: [user],
-    } = await db.query(`SELECT account_type FROM users WHERE id = $1`, [
-      userId,
-    ]);
-
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
+    const deleted = await deleteManagerEventByManagerId(userId);
+    if (!deleted) {
+      return res.status(404).send("Manager not part of this event");
     }
-
-    if (user.account_type === "MAN") {
-      const { rows: subordinates } = await db.query(
-        `
-        SELECT id FROM subordinates_events
-        WHERE manager_id = $1 AND event_id = $2
-      `,
-        [userId, eventId]
-      );
-
-      if (subordinates.length > 0) {
-        return res.status(400).json({
-          error: "Cannot remove manager with assigned subordinates",
-        });
-      }
-
-      const {
-        rows: [removed],
-      } = await db.query(
-        `
-        DELETE FROM managers_events
-        WHERE manager_id = $1 AND event_id = $2
-        RETURNING *;
-      `,
-        [userId, eventId]
-      );
-
-      if (!removed) {
-        return res
-          .status(404)
-          .json({ error: "Manager not part of this event" });
-      }
-
-      return res.sendStatus(204);
-    }
-
-    if (user.account_type === "SUB") {
-      const {
-        rows: [removed],
-      } = await db.query(
-        `
-        DELETE FROM subordinates_events
-        WHERE subordinate_id = $1 AND event_id = $2
-        RETURNING *;
-      `,
-        [userId, eventId]
-      );
-
-      if (!removed) {
-        return res
-          .status(404)
-          .json({ error: "Subordinate not part of this event" });
-      }
-
-      return res.sendStatus(204);
-    }
-
-    return res.status(400).json({ error: "Cannot remove organizers this way" });
-  } catch (err) {
-    next(err);
-  }
-});
-
-rostersRouter.get("/:manager", async (req, res, next) => {
-  const managerId = parseInt(req.params.manager);
-  const { eventId } = req.query;
-  const requesterId = req.user.id;
-
-  if (!eventId || isNaN(managerId)) {
-    return res.status(400).json({ error: "Malformed request" });
+    return res.status(204).send("User removed");
   }
 
-  try {
-    const event = await getEventById(Number(eventId));
-    if (!event) {
-      return res.status(404).json({ error: "Event not found" });
-    }
-
-    const {
-      rows: [managerCheck],
-    } = await db.query(
-      `
-      SELECT 1
-      FROM managers_events
-      WHERE manager_id = $1 AND event_id = $2
-    `,
-      [managerId, eventId]
-    );
-
-    if (!managerCheck) {
-      return res.status(404).json({ error: "Manager not part of this event" });
-    }
-
-    if (requesterId !== managerId && requesterId !== event.organizer_id) {
-      return res.status(403).json({ error: "Access denied" });
-    }
-
-    const { rows: subordinates } = await db.query(
-      `
-      SELECT u.*
-      FROM subordinates_events se
-      JOIN users u ON u.id = se.subordinate_id
-      WHERE se.manager_id = $1 AND se.event_id = $2
-    `,
-      [managerId, eventId]
-    );
-
-    return res.json({ subordinates });
-  } catch (err) {
-    next(err);
-  }
-});
-
-rostersRouter.post("/:manager", async (req, res, next) => {
-  const managerId = parseInt(req.params.manager);
-  const { eventId, userId } = req.body;
-  const requesterId = req.user.id;
-
-  if (!eventId || !userId || isNaN(managerId)) {
-    return res.status(400).json({ error: "Malformed request" });
-  }
-
-  try {
-    const event = await getEventById(eventId);
-    if (!event) {
-      return res.status(404).json({ error: "Event not found" });
-    }
-
-    if (requesterId !== event.organizer_id) {
-      return res
-        .status(403)
-        .json({ error: "Only the organizer can assign subordinates" });
-    }
-
-    const {
-      rows: [manager],
-    } = await db.query(
-      `SELECT 1 FROM managers_events WHERE manager_id = $1 AND event_id = $2`,
-      [managerId, eventId]
-    );
-
-    if (!manager) {
-      return res.status(404).json({ error: "Manager not part of this event" });
-    }
-
-    const {
-      rows: [existing],
-    } = await db.query(
-      `SELECT 1 FROM subordinates_events WHERE subordinate_id = $1 AND event_id = $2`,
-      [userId, eventId]
-    );
-
-    if (existing) {
-      return res.status(409).json({
-        error: "User already assigned as a subordinate in this event",
-      });
-    }
-
-    const {
-      rows: [added],
-    } = await db.query(
-      `
-      INSERT INTO subordinates_events (subordinate_id, event_id, manager_id)
-      VALUES ($1, $2, $3)
-      RETURNING *;
-      `,
-      [userId, eventId, managerId]
-    );
-
-    return res.status(201).json({
-      message: "Subordinate assigned to manager",
-      data: added,
-    });
-  } catch (err) {
-    next(err);
-  }
-});
-
-rostersRouter.put("/:manager", async (req, res, next) => {
-  const newManagerId = parseInt(req.params.manager);
-  const { eventId, userId } = req.body;
-  const requesterId = req.user.id;
-
-  if (!eventId || !userId || isNaN(newManagerId)) {
-    return res.status(400).json({ error: "Malformed request" });
-  }
-
-  try {
-    // Check event exists
-    const event = await getEventById(eventId);
-    if (!event) {
-      return res.status(404).json({ error: "Event not found" });
-    }
-
-    // Must be organizer
-    if (event.organizer_id !== requesterId) {
-      return res
-        .status(403)
-        .json({ error: "Only the organizer can reassign subordinates" });
-    }
-
-    // Check new manager is in the event
-    const {
-      rows: [manager],
-    } = await db.query(
-      `SELECT 1 FROM managers_events WHERE manager_id = $1 AND event_id = $2`,
-      [newManagerId, eventId]
-    );
-
-    if (!manager) {
+  if (user.account_type === "sub") {
+    const deleted = await deleteSubordinateEventBySubordinateId(userId);
+    if (!deleted) {
       return res
         .status(404)
-        .json({ error: "New manager not part of this event" });
+        .json({ error: "Subordinate not part of this event" });
     }
-
-    // Confirm subordinate exists in the event
-    const {
-      rows: [subordinate],
-    } = await db.query(
-      `SELECT * FROM subordinates_events WHERE subordinate_id = $1 AND event_id = $2`,
-      [userId, eventId]
-    );
-
-    if (!subordinate) {
-      return res
-        .status(404)
-        .json({ error: "Subordinate not found in this event" });
-    }
-
-    // Update subordinate's manager
-    const {
-      rows: [updated],
-    } = await db.query(
-      `
-      UPDATE subordinates_events
-      SET manager_id = $1
-      WHERE subordinate_id = $2 AND event_id = $3
-      RETURNING *;
-      `,
-      [newManagerId, userId, eventId]
-    );
-
-    return res.status(200).json({
-      message: "Subordinate reassigned",
-      data: updated,
-    });
-  } catch (err) {
-    next(err);
+    return res.status(204).send("User removed");
   }
 });
