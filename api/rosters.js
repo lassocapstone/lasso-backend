@@ -11,11 +11,13 @@ import {
   createSubordinatesEvents,
   deleteSubordinateEventBySubordinateId,
   getSubordinatesByManagerId,
+  updateSubordinateManagerByManagerId,
 } from "#db/queries/subordinatesEvents";
 import requireUser from "#db/middleware/requireUser";
 import { getEventById } from "#db/queries/events";
 import { getEventsByOrganizer } from "#db/queries/events";
 import requireOrganizer from "#middleware/requireOrganizer";
+import requireAdmin from "#middleware/requireAdmin";
 
 rostersRouter.use(requireUser);
 
@@ -59,11 +61,10 @@ rostersRouter.get("/", async (req, res, next) => {
       roster = res.status(403).send("You do not have access to the roster");
       break;
   }
+  return res.send(roster);
 });
-
-rostersRouter.use(requireOrganizer);
-
-rostersRouter.post("/", async (req, res) => {
+rostersRouter.user(requireAdmin);
+rostersRouter.post("/", requireOrganizer, async (req, res) => {
   const { eventId, userId, managerId } = req.body;
   const requesterId = req.user.id;
   if (!Number.isInteger(eventId) || !Number.isInteger(userId)) {
@@ -91,7 +92,7 @@ rostersRouter.post("/", async (req, res) => {
   }
 });
 
-rostersRouter.delete("/", async (req, res, next) => {
+rostersRouter.delete("/", requireOrganizer, async (req, res, next) => {
   const { userId } = req.body;
 
   const user = await getUserById(userId);
@@ -122,4 +123,26 @@ rostersRouter.delete("/", async (req, res, next) => {
     }
     return res.status(204).send("User removed");
   }
+});
+
+rostersRouter.get("/:manager", async (req, res) => {
+  const managerId = parseInt(req.params.manager);
+  const managerRoster = getSubordinatesByManagerId(managerId);
+  if (!managerId) {
+    return res.status(404).send("Manager not found");
+  }
+  return res.status(200).send(managerRoster);
+});
+
+rostersRouter.put("/:manager", async (req, res) => {
+  const { newManagerId, oldManagerId } = req.body;
+  const requesterId = req.user.id;
+  const event = await getEventById(eventId);
+  if (event.organizer_id !== requesterId) {
+    return res.status(403).send("You are not the organizer for this event");
+  }
+  if (!event) {
+    return res.status(404).send("Event not found");
+  }
+  await updateSubordinateManagerByManagerId(newManagerId, oldManagerId);
 });
