@@ -124,6 +124,7 @@ rostersRouter.post("/", async (req, res, next) => {
         `
         INSERT INTO managers_events (manager_id, event_id)
         VALUES ($1, $2)
+        ON CONFLICT (manager_id, event_id) DO NOTHING
         RETURNING *;
       `,
         [userId, eventId]
@@ -250,6 +251,194 @@ rostersRouter.delete("/", async (req, res, next) => {
     }
 
     return res.status(400).json({ error: "Cannot remove organizers this way" });
+  } catch (err) {
+    next(err);
+  }
+});
+
+rostersRouter.get("/:manager", async (req, res, next) => {
+  const managerId = parseInt(req.params.manager);
+  const { eventId } = req.query;
+  const requesterId = req.user.id;
+
+  if (!eventId || isNaN(managerId)) {
+    return res.status(400).json({ error: "Malformed request" });
+  }
+
+  try {
+    const event = await getEventById(Number(eventId));
+    if (!event) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+
+    const {
+      rows: [managerCheck],
+    } = await db.query(
+      `
+      SELECT 1
+      FROM managers_events
+      WHERE manager_id = $1 AND event_id = $2
+    `,
+      [managerId, eventId]
+    );
+
+    if (!managerCheck) {
+      return res.status(404).json({ error: "Manager not part of this event" });
+    }
+
+    if (requesterId !== managerId && requesterId !== event.organizer_id) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    const { rows: subordinates } = await db.query(
+      `
+      SELECT u.*
+      FROM subordinates_events se
+      JOIN users u ON u.id = se.subordinate_id
+      WHERE se.manager_id = $1 AND se.event_id = $2
+    `,
+      [managerId, eventId]
+    );
+
+    return res.json({ subordinates });
+  } catch (err) {
+    next(err);
+  }
+});
+
+rostersRouter.post("/:manager", async (req, res, next) => {
+  const managerId = parseInt(req.params.manager);
+  const { eventId, userId } = req.body;
+  const requesterId = req.user.id;
+
+  if (!eventId || !userId || isNaN(managerId)) {
+    return res.status(400).json({ error: "Malformed request" });
+  }
+
+  try {
+    const event = await getEventById(eventId);
+    if (!event) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+
+    if (requesterId !== event.organizer_id) {
+      return res
+        .status(403)
+        .json({ error: "Only the organizer can assign subordinates" });
+    }
+
+    const {
+      rows: [manager],
+    } = await db.query(
+      `SELECT 1 FROM managers_events WHERE manager_id = $1 AND event_id = $2`,
+      [managerId, eventId]
+    );
+
+    if (!manager) {
+      return res.status(404).json({ error: "Manager not part of this event" });
+    }
+
+    const {
+      rows: [existing],
+    } = await db.query(
+      `SELECT 1 FROM subordinates_events WHERE subordinate_id = $1 AND event_id = $2`,
+      [userId, eventId]
+    );
+
+    if (existing) {
+      return res.status(409).json({
+        error: "User already assigned as a subordinate in this event",
+      });
+    }
+
+    const {
+      rows: [added],
+    } = await db.query(
+      `
+      INSERT INTO subordinates_events (subordinate_id, event_id, manager_id)
+      VALUES ($1, $2, $3)
+      RETURNING *;
+      `,
+      [userId, eventId, managerId]
+    );
+
+    return res.status(201).json({
+      message: "Subordinate assigned to manager",
+      data: added,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+rostersRouter.put("/:manager", async (req, res, next) => {
+  const newManagerId = parseInt(req.params.manager);
+  const { eventId, userId } = req.body;
+  const requesterId = req.user.id;
+
+  if (!eventId || !userId || isNaN(newManagerId)) {
+    return res.status(400).json({ error: "Malformed request" });
+  }
+
+  try {
+    // Check event exists
+    const event = await getEventById(eventId);
+    if (!event) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+
+    // Must be organizer
+    if (event.organizer_id !== requesterId) {
+      return res
+        .status(403)
+        .json({ error: "Only the organizer can reassign subordinates" });
+    }
+
+    // Check new manager is in the event
+    const {
+      rows: [manager],
+    } = await db.query(
+      `SELECT 1 FROM managers_events WHERE manager_id = $1 AND event_id = $2`,
+      [newManagerId, eventId]
+    );
+
+    if (!manager) {
+      return res
+        .status(404)
+        .json({ error: "New manager not part of this event" });
+    }
+
+    // Confirm subordinate exists in the event
+    const {
+      rows: [subordinate],
+    } = await db.query(
+      `SELECT * FROM subordinates_events WHERE subordinate_id = $1 AND event_id = $2`,
+      [userId, eventId]
+    );
+
+    if (!subordinate) {
+      return res
+        .status(404)
+        .json({ error: "Subordinate not found in this event" });
+    }
+
+    // Update subordinate's manager
+    const {
+      rows: [updated],
+    } = await db.query(
+      `
+      UPDATE subordinates_events
+      SET manager_id = $1
+      WHERE subordinate_id = $2 AND event_id = $3
+      RETURNING *;
+      `,
+      [newManagerId, userId, eventId]
+    );
+
+    return res.status(200).json({
+      message: "Subordinate reassigned",
+      data: updated,
+    });
   } catch (err) {
     next(err);
   }
