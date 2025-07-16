@@ -6,5 +6,6 @@ export default async function requireEvent(req, res, next) {
   const event = await getEventById(eventId);
   if(!event) return res.status(404).send("That event does not exist");
 
+  req.event = event;
   next();
 }

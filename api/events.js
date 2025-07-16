@@ -50,8 +50,6 @@ router
       const {eventId} = req.params;
       const {id: userId, account_type: accountType} = req.user;
       
-      console.log(req.user);
-
       let events;
       switch(accountType){
         case "org": 
@@ -71,8 +69,6 @@ router
           inEvent = true;
         }
       })
-
-      console.log(inEvent);
 
       if(inEvent) {
         const event = await getEventById(eventId);
@@ -109,6 +105,6 @@ router
 import tasksRouter from "#api/tasks";
 import alertsRouter from "#api/alerts";
 // import rosterRouter from "#api/roster";
-router.use("/:eventId/tasks", tasksRouter);  
-router.use("/:eventId/alerts", alertsRouter);
-// router.use("/:eventId/roster", rosterRouter);
+router.use("/:eventId/tasks", requireEvent, tasksRouter);  
+router.use("/:eventId/alerts", requireEvent, alertsRouter);
+// router.use("/:eventId/roster", requireEvent, rosterRouter);
