@@ -1,4 +1,7 @@
 export default function requireOrganizer(req, res, next) {
-  if(req.user.account_type !== "org") res.status(403).send("Authorization denied. User not an organizer.");
+  const {id, account_type: accountType} = req.user;
+
+  if(accountType !== "org") return res.status(403).send("Authorization denied. User not an organizer.");
+
   next();
 }
