@@ -15,14 +15,19 @@ router.use(requireAdmin);
 router.route("/")
   .get(
     async (req, res) => {
-      const alertsByUser = await getAlertsBySender(req.user.id);
-      res.send(alertsByUser);
+      const eventAlerts = await getAlertsByEvent(req.event.id);
+
+      const userAlerts = eventAlerts.filter((curAlert) =>
+        curAlert.recipient_id === Number(req.user.id) || curAlert.sender_id === Number(req.user.id)
+      );
+
+      res.send(userAlerts);
 })
   .post(
-    requireBody(["isOkay", "name", "message", "eventId"]),
+    requireBody(["isOkay", "name", "message", "eventId", "recipientId"]),
     async (req, res) => {
-      const { isOkay, name, message, eventId } = req.body;
-      const createdAlert = await createAlert(isOkay, name, message, eventId, req.user.id);
+      const { isOkay, name, message, eventId, recipientId } = req.body;
+      const createdAlert = await createAlert(isOkay, name, message, eventId, recipientId, req.user.id);
       res.status(201).send(createdAlert);
 });
 
@@ -36,12 +41,12 @@ router.route("/:alertId")
 })
   .put(
     requireAlert,
-    requireBody(["isOkay", "name", "message", "eventId", "senderId"]),
+    requireBody(["isOkay", "name", "message", "eventId", "recipientId", "senderId"]),
     async (req, res) => {
-      const {isOkay, name, message, eventId, senderId} = req.body;
+      const {isOkay, name, message, eventId, recipientId, senderId} = req.body;
       const {alertId} = req.params;
 
-      const updatedAlert = await updateAlertById(alertId, isOkay, name, message, eventId, senderId);
+      const updatedAlert = await updateAlertById(alertId, isOkay, name, message, eventId, recipientId, senderId);
       res.send(updatedAlert);
   })
   .delete(
@@ -49,5 +54,5 @@ router.route("/:alertId")
     async (req, res) => {
       const {alertId} = req.params;
       const deletedAlert = await deleteAlertById(alertId);
-      res.status(204).send(deletedAlert);
+      res.status(204).send("Alert deleted");
 });
