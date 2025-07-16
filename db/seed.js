@@ -94,7 +94,8 @@ async function seed() {
     "true", 
     "stairs hard", 
     "bobby fell down the stairs", 
-    1, 
+    1,
+    testOrganizer.id,
     testManager.id
   );
   
@@ -103,13 +104,15 @@ async function seed() {
     "stairs super hard",
     "jimmy fell down the stairs",
     2,
+    testOrganizer.id,
     testManager.id
   );
   await createAlert(
     "false", 
     "bad stairs", 
     "sally fell down the stairs", 
-    1, 
+    1,
+    testOrganizer.id, 
     3
   );
 
