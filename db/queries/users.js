@@ -11,7 +11,6 @@ export async function createUser(
   status,
   emergency_contact_id
 ) {
-
   const sql = `
   INSERT INTO users
     (name, username, password, account_type, contact_number, role, status, emergency_contact_id)
@@ -64,3 +63,9 @@ export async function getUserById(id) {
   return user;
 }
 
+export async function getUserAccountTypeById(userId) {
+  const {
+    rows: [accountType],
+  } = await db.query(`SELECT account_type FROM users WHERE id = $1`, [userId]);
+  return accountType;
+}
