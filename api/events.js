@@ -6,7 +6,7 @@ import requireUser from "#middleware/requireUser";
 import requireEvent from "#middleware/requireEvent";
 import requireBody from "#middleware/requireBody";
 import requireOrganizer from "#middleware/requireOrganizer";
-import { createEvent, getEventById, getEventsByOrganizer, updateEventById } from "#db/queries/events";
+import { createEvent, deleteEventById, getEventById, getEventsByOrganizer, updateEventById } from "#db/queries/events";
 import { getEventsByManagerId } from "#db/queries/managersEvents";
 import { getEventsBySubordinateId } from "#db/queries/subordinatesEvents";
 
@@ -84,9 +84,9 @@ router
     requireOrganizer,
     requireEvent,
     async (req, res) => {
-      const { id } = req.params;
+      const { eventId } = req.params;
 
-      const event = await getEventById(id);
+      const event = await getEventById(eventId);
       if(!event) res.status(404).send("That event does not exist");
 
       res.send(event);
@@ -95,12 +95,21 @@ router
     requireOrganizer,
     requireBody(["name", "startTime", "endTime", "location", "organizerId"]),
     async (req, res) => {
-      const { id } = req.params;
+      const { eventId } = req.params;
       const { name, startTime, endTime, location, organizerId } = req.body;
 
-      const updatedEvent = await updateEventById(id, name, startTime, endTime, location, organizerId);
+      const updatedEvent = await updateEventById(eventId, name, startTime, endTime, location, organizerId);
       res.send(updatedEvent);
-  });
+  })
+  .delete(
+    requireOrganizer,
+    requireEvent,
+    async (req, res) => {
+      const {eventId} = req.params;
+      await deleteEventById(eventId);
+      res.status(204).send("Event deleted");
+    }
+  )
 
 import tasksRouter from "#api/tasks";
 import alertsRouter from "#api/alerts";
