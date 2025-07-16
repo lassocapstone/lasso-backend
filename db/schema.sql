@@ -28,8 +28,8 @@ CREATE TABLE users (
 CREATE TABLE events (
   id SERIAL PRIMARY KEY,
   name VARCHAR(50) NOT NULL,
-  start_time TIME NOT NULL,
-  end_time TIME NOT NULL,
+  start_time TIMESTAMP NOT NULL,
+  end_time TIMESTAMP NOT NULL,
   location VARCHAR(50) NOT NULL,
   organizer_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE
 );
@@ -53,6 +53,7 @@ CREATE TABLE alerts (
   name VARCHAR(50) NOT NULL,
   message TEXT NOT NULL,
   event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  recipient_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -60,8 +61,8 @@ CREATE TABLE tasks (
   id SERIAL PRIMARY KEY,
   event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
   name VARCHAR(30) NOT NULL,
-  start_time TIME NOT NULL,
-  end_time TIME NOT NULL,
+  start_time TIMESTAMP NOT NULL,
+  end_time TIMESTAMP NOT NULL,
   location VARCHAR(30) NOT NULL,
   instructions TEXT
 );

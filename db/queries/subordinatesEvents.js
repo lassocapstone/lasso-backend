@@ -28,7 +28,7 @@ export const getEventsBySubordinateId = async (id) => {
     WHERE users.id = $1;
   `;
 
-  const {rows: events} = await db.query(sql, [managerId])
+  const {rows: events} = await db.query(sql, [id])
   return events;
 }
 

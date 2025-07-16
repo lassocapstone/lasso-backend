@@ -18,6 +18,30 @@ console.log("🌱 Database seeded.");
 async function seed() {
   //as of current every user has the same emergency contact at id 1.
   await createEmergencyContact("5555555555", faker.person.fullName(), "family");
+  const testOrganizer = await createUser(
+    "Diana Ross",
+    "testOrg",
+    "password",
+    "org",
+    "5555555555"
+  );
+
+   const testManager = await createUser(
+    "Ricardo H. Coupons",
+    "testMan",
+    "password",
+    "man",
+    "5555555555"
+  );
+
+   const testSubordinate = await createUser(
+    "Leeroy Jenkins",
+    "testSub",
+    "password",
+    "sub",
+    "5555555555"
+  );
+
   await createUser(
     faker.person.fullName(),
     faker.internet.username(),
@@ -50,54 +74,70 @@ async function seed() {
 
   await createEvent(
     "Museum Visit",
-    "14:00:00",
-    "18:00:00",
+    "2025-07-13 14:00:00",
+    "2025-07-13 18:00:00",
     "The museum of stuff",
-    1
+    testOrganizer.id
   );
 
   await createEvent(
     "Museum buyout",
-    "15:00:00",
-    "19:00:00",
+    "2025-07-14 15:00:00",
+    "2025-07-14 19:00:00",
     "Things the museum",
-    1
+    testOrganizer.id
   );
 
   //alerts have:
   //is_okay, name, message, event_id, sender_id
-  await createAlert("true", "stairs hard", "bobby fell down the stairs", 1, 2);
+  await createAlert(
+    "true", 
+    "stairs hard", 
+    "bobby fell down the stairs", 
+    1,
+    testOrganizer.id,
+    testManager.id
+  );
+  
   await createAlert(
     "true",
     "stairs super hard",
     "jimmy fell down the stairs",
     2,
-    2
+    testOrganizer.id,
+    testManager.id
   );
-  await createAlert("false", "bad stairs", "sally fell down the stairs", 1, 3);
+  await createAlert(
+    "false", 
+    "bad stairs", 
+    "sally fell down the stairs", 
+    1,
+    testOrganizer.id, 
+    3
+  );
 
   //tasks have:
   //event_id, name, start_time, end_time, location, instructions
   await createTask(
     1,
     "Take Attendance Upon arrival",
-    "14:30:00",
-    "14:35:00",
+    "2025-07-13 14:30:00",
+    "2025-07-13 14:35:00",
     "At the museum",
     "count your group members and report all good on task"
   );
   await createTask(
     2,
     "Take Attendance Upon arrival",
-    "14:30:00",
-    "14:35:00",
+    "2025-07-14 15:30:00",
+    "2025-07-14 15:35:00",
     "At the museum",
     "count your group members and report all good on task"
   );
 
-  await createManagersEvents(2, 1);
+  await createManagersEvents(testManager.id, 1);
   await createManagersEvents(3, 2);
 
-  await createSubordinatesEvents(5, 1, 2);
+  await createSubordinatesEvents(testSubordinate.id, 1, 2);
   await createSubordinatesEvents(6, 2, 3);
 }
