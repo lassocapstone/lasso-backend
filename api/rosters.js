@@ -33,15 +33,21 @@ rostersRouter.get("/", async (req, res, next) => {
   }
 
   if (accountType === "org") {
-    const isOrganizer = await getEventsByOrganizer(userId);
-    if (!isOrganizer) {
+    const organizedEvents = await getEventsByOrganizer(userId);
+    const isOrganizerForThisEvent = organizedEvents.some(
+      (e) => e.id === parseInt(eventId)
+    );
+    if (!isOrganizerForThisEvent) {
       return res.status(403).send("You are not part of this event");
     }
   }
 
   if (accountType === "man") {
-    const isManager = await getEventsByManagerId(userId);
-    if (!isManager) {
+    const managedEvents = await getEventsByManagerId(userId);
+    const isManagerForThisEvent = managedEvents.some(
+      (e) => e.id === parseInt(eventId)
+    );
+    if (!isManagerForThisEvent) {
       return res.status(403).send("You are not part of this event");
     }
   }
@@ -55,7 +61,7 @@ rostersRouter.get("/", async (req, res, next) => {
       ];
       break;
     case "man":
-      roster = await getSubordinatesByEventId(eventId);
+      roster = await getSubordinatesByManagerId(eventId);
       break;
     case "sub":
       roster = res.status(403).send("You do not have access to the roster");
@@ -64,68 +70,78 @@ rostersRouter.get("/", async (req, res, next) => {
   return res.send(roster);
 });
 
-rostersRouter.user(requireAdmin);
+rostersRouter.use(requireAdmin);
 
-rostersRouter.post("/", requireOrganizer, async (req, res) => {
-  const { eventId, userId, managerId } = req.body;
-  const requesterId = req.user.id;
-  const user = await getUserById(userId);
+rostersRouter.post(
+  "/",
+  requirebody(["eventId", "userId", "managerId"]),
+  requireOrganizer,
+  async (req, res) => {
+    const { eventId, userId, managerId } = req.body;
+    const requesterId = req.user.id;
+    const user = await getUserById(userId);
 
-  if (!Number.isInteger(eventId) || !Number.isInteger(userId)) {
-    return res.status(400).send("Malformed Request");
-  }
-  const event = await getEventById(eventId);
-  if (!event) {
-    return res.status(404).send("Event not found");
-  }
-  if (event.organizer_id !== requesterId) {
-    return res.status(403).send("Only the event organizer can add users");
-  }
-
-  if (user.account_type === "man") {
-    await createManagersEvents(userId, eventId);
-    return res.status(201).send("Manager Added");
-  }
-
-  if (user.account_type === "sub") {
-    if (!Number.isInteger(managerId)) {
-      return res.status(400).send("Missing or invalid manager Id");
+    if (!Number.isInteger(eventId) || !Number.isInteger(userId)) {
+      return res.status(400).send("Malformed Request");
     }
-    await createSubordinatesEvents(userId, eventId, managerId);
-    return res.status(201).send("Subordinate Added");
-  }
-});
-
-rostersRouter.delete("/", requireOrganizer, async (req, res, next) => {
-  const { userId } = req.body;
-
-  const user = await getUserById(userId);
-  if (!user) {
-    return res.status(404).send("User not found");
-  }
-
-  if (user.account_type === "man") {
-    const subordinates = await getSubordinatesByManagerId(userId);
-    if (subordinates.length > 0) {
-      return res
-        .status(400)
-        .send("Cannot remove manager with assigned subordinates");
+    const event = await getEventById(eventId);
+    if (!event) {
+      return res.status(404).send("Event not found");
     }
-    const deleted = await deleteManagerEventByManagerId(userId);
-    if (!deleted) {
-      return res.status(404).send("Manager not part of this event");
+    if (event.organizer_id !== requesterId) {
+      return res.status(403).send("Only the event organizer can add users");
     }
-    return res.status(204).send("User removed");
-  }
 
-  if (user.account_type === "sub") {
-    const deleted = await deleteSubordinateEventBySubordinateId(userId);
-    if (!deleted) {
-      return res.status(404).send("Subordinate is not part of this event");
+    if (user.account_type === "man") {
+      await createManagersEvents(userId, eventId);
+      return res.status(201).send("Manager Added");
     }
-    return res.status(204).send("User removed");
+
+    if (user.account_type === "sub") {
+      if (!Number.isInteger(managerId)) {
+        return res.status(400).send("Missing or invalid manager Id");
+      }
+      await createSubordinatesEvents(userId, eventId, managerId);
+      return res.status(201).send("Subordinate Added");
+    }
   }
-});
+);
+
+rostersRouter.delete(
+  "/",
+  requireBody(["userId"]),
+  requireOrganizer,
+  async (req, res, next) => {
+    const { userId } = req.body;
+
+    const user = await getUserById(userId);
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+
+    if (user.account_type === "man") {
+      const subordinates = await getSubordinatesByManagerId(userId);
+      if (subordinates.length > 0) {
+        return res
+          .status(400)
+          .send("Cannot remove manager with assigned subordinates");
+      }
+      const deleted = await deleteManagerEventByManagerId(userId);
+      if (!deleted) {
+        return res.status(404).send("Manager not part of this event");
+      }
+      return res.status(204).send("User removed");
+    }
+
+    if (user.account_type === "sub") {
+      const deleted = await deleteSubordinateEventBySubordinateId(userId);
+      if (!deleted) {
+        return res.status(404).send("Subordinate is not part of this event");
+      }
+      return res.status(204).send("User removed");
+    }
+  }
+);
 
 rostersRouter.get("/:manager", async (req, res) => {
   const managerId = parseInt(req.params.manager);
