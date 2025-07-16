@@ -24,23 +24,23 @@ rostersRouter.use(requireUser);
 rostersRouter.get("/", async (req, res, next) => {
   const { id: userId, account_type: accountType } = req.user;
   const { eventId } = req.query;
-  if (!eventID) {
+  if (!eventId) {
     return res.status(400).send("Missing Event Id");
   }
-  const event = getEventById(eventId);
+  const event = await getEventById(eventId);
   if (!event) {
     return res.status(404).send("Event Not Found");
   }
 
   if (accountType === "org") {
-    const isOrganizer = getEventsByOrganizer(userId);
+    const isOrganizer = await getEventsByOrganizer(userId);
     if (!isOrganizer) {
       return res.status(403).send("You are not part of this event");
     }
   }
 
   if (accountType === "man") {
-    const isManager = getEventsByManagerId(userId);
+    const isManager = await getEventsByManagerId(userId);
     if (!isManager) {
       return res.status(403).send("You are not part of this event");
     }
@@ -63,10 +63,14 @@ rostersRouter.get("/", async (req, res, next) => {
   }
   return res.send(roster);
 });
+
 rostersRouter.user(requireAdmin);
+
 rostersRouter.post("/", requireOrganizer, async (req, res) => {
   const { eventId, userId, managerId } = req.body;
   const requesterId = req.user.id;
+  const user = await getUserById(userId);
+
   if (!Number.isInteger(eventId) || !Number.isInteger(userId)) {
     return res.status(400).send("Malformed Request");
   }
@@ -117,9 +121,7 @@ rostersRouter.delete("/", requireOrganizer, async (req, res, next) => {
   if (user.account_type === "sub") {
     const deleted = await deleteSubordinateEventBySubordinateId(userId);
     if (!deleted) {
-      return res
-        .status(404)
-        .json({ error: "Subordinate not part of this event" });
+      return res.status(404).send("Subordinate is not part of this event");
     }
     return res.status(204).send("User removed");
   }
@@ -127,22 +129,23 @@ rostersRouter.delete("/", requireOrganizer, async (req, res, next) => {
 
 rostersRouter.get("/:manager", async (req, res) => {
   const managerId = parseInt(req.params.manager);
-  const managerRoster = getSubordinatesByManagerId(managerId);
-  if (!managerId) {
+  if (isNaN(managerId)) {
     return res.status(404).send("Manager not found");
   }
+  const managerRoster = await getSubordinatesByManagerId(managerId);
   return res.status(200).send(managerRoster);
 });
 
 rostersRouter.put("/:manager", async (req, res) => {
-  const { newManagerId, oldManagerId } = req.body;
+  const { newManagerId, oldManagerId, eventId } = req.body;
   const requesterId = req.user.id;
   const event = await getEventById(eventId);
-  if (event.organizer_id !== requesterId) {
-    return res.status(403).send("You are not the organizer for this event");
-  }
   if (!event) {
     return res.status(404).send("Event not found");
   }
+  if (event.organizer_id !== requesterId) {
+    return res.status(403).send("You are not the organizer for this event");
+  }
   await updateSubordinateManagerByManagerId(newManagerId, oldManagerId);
+  return res.status(200).send("Updated");
 });
