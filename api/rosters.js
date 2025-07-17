@@ -1,5 +1,6 @@
 import express from "express";
 const rostersRouter = express.Router();
+export default rostersRouter;
 import {
   getManagersByEventId,
   getEventsByManagerId,
