@@ -69,3 +69,15 @@ export async function getUserAccountTypeById(userId) {
   } = await db.query(`SELECT account_type FROM users WHERE id = $1`, [userId]);
   return accountType;
 }
+
+export const putUserAccountType = async (accountType, userId) => {
+  const sql = `
+    UPDATE users
+      SET account_type = $1
+    WHERE id = $2
+    RETURNING *;
+  `;
+
+  const {rows: [newUser]} = await db.query(sql, [accountType, userId]);
+  return newUser;
+}

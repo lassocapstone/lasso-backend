@@ -2,9 +2,10 @@ import express from "express";
 const router = express.Router();
 export default router;
 
-import { createUser, getUserById, getUserByUsernameAndPassword } from "#db/queries/users";
+import { createUser, getUserById, getUserByUsernameAndPassword, putUserAccountType } from "#db/queries/users";
 import requireBody from "#middleware/requireBody";
 import requireUser from "#middleware/requireUser";
+import requireOrganizer from "#middleware/requireOrganizer";
 import { createToken } from "#utils/jwt";
 
 router
@@ -15,8 +16,19 @@ router
       const {id} = req.user;
       const user = await getUserById(id);
       res.send(user);
-    }
-  )
+  });
+
+router
+  .route("/:userId")
+  .put(
+    requireUser,
+    requireOrganizer,
+    requireBody(["accountType"]),
+    async (req, res) => {
+      const {accountType, userId} = req.body;
+      const updatedUser = await putUserAccountType(accountType, userId);
+      res.send(updatedUser);
+  })
 
 router
   .route("/register")
