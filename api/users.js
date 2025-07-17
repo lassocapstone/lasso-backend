@@ -2,9 +2,21 @@ import express from "express";
 const router = express.Router();
 export default router;
 
-import { createUser, getUserByUsernameAndPassword } from "#db/queries/users";
+import { createUser, getUserById, getUserByUsernameAndPassword } from "#db/queries/users";
 import requireBody from "#middleware/requireBody";
+import requireUser from "#middleware/requireUser";
 import { createToken } from "#utils/jwt";
+
+router
+  .route("/")
+  .get(
+    requireUser,
+    async (req, res) => {
+      const {id} = req.user;
+      const user = await getUserById(id);
+      res.send(user);
+    }
+  )
 
 router
   .route("/register")
