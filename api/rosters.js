@@ -19,6 +19,7 @@ import { getEventById } from "#db/queries/events";
 import { getEventsByOrganizer } from "#db/queries/events";
 import requireOrganizer from "#middleware/requireOrganizer";
 import requireAdmin from "#middleware/requireAdmin";
+import requireBody from "#middleware/requireBody";
 
 rostersRouter.use(requireUser);
 
@@ -75,7 +76,7 @@ rostersRouter.use(requireAdmin);
 
 rostersRouter.post(
   "/",
-  requirebody(["eventId", "userId", "managerId"]),
+  requireBody(["eventId", "userId", "managerId"]),
   requireOrganizer,
   async (req, res) => {
     const { eventId, userId, managerId } = req.body;
