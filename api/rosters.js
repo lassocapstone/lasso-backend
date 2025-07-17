@@ -14,7 +14,7 @@ import {
   getSubordinatesByManagerId,
   updateSubordinateManagerByManagerId,
 } from "#db/queries/subordinatesEvents";
-import requireUser from "#db/middleware/requireUser";
+import requireUser from "#middleware/requireUser";
 import { getEventById } from "#db/queries/events";
 import { getEventsByOrganizer } from "#db/queries/events";
 import requireOrganizer from "#middleware/requireOrganizer";
