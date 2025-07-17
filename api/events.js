@@ -34,11 +34,12 @@ router
   })
   .post(
     requireOrganizer,
-    requireBody(["name", "startTime", "endTime", "location", "organizerId"]),
+    requireBody(["name", "startTime", "endTime", "location"]),
     async (req, res) => {
-      const {name, startTime, endTime, location, organizerId} = req.body;
+      const {name, startTime, endTime, location} = req.body;
 
-      const newEvent = await createEvent(name, startTime, endTime, location, organizerId);
+
+      const newEvent = await createEvent(name, startTime, endTime, location, req.user.id);
       res.status(201).send(newEvent);
   });
 
@@ -93,12 +94,12 @@ router
   })
   .put(
     requireOrganizer,
-    requireBody(["name", "startTime", "endTime", "location", "organizerId"]),
+    requireBody(["name", "startTime", "endTime", "location"]),
     async (req, res) => {
       const { eventId } = req.params;
-      const { name, startTime, endTime, location, organizerId } = req.body;
+      const { name, startTime, endTime, location } = req.body;
 
-      const updatedEvent = await updateEventById(eventId, name, startTime, endTime, location, organizerId);
+      const updatedEvent = await updateEventById(eventId, name, startTime, endTime, location, req.user.id);
       res.send(updatedEvent);
   })
   .delete(
