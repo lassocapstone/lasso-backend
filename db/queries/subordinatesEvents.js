@@ -36,8 +36,7 @@ export const getSubordinatesByManagerId = async (managerId) => {
   const sql = `
     SELECT users.* FROM users
     JOIN subordinates_events ON users.id = subordinates_events.subordinate_id
-    JOIN users ON users.id = subordinates_events.manager_id
-    WHERE users.id = $1;
+    WHERE subordinates_events.manager_id = $1;
   `;
 
   const {rows: subordinates} = await db.query(sql, [managerId])
@@ -46,9 +45,9 @@ export const getSubordinatesByManagerId = async (managerId) => {
 
 export const getSubordinatesByEventId = async (eventId) => {
   const sql = `
-    SELECT events.* FROM events
-    JOIN subordinates_events ON events.id = subordinates_events.event_id
-    JOIN users ON users.id = subordinates_events.subordinate_id
+    SELECT users.* FROM users
+    JOIN subordinates_events ON users.id = subordinates_events.subordinate_id
+    JOIN events ON events.id = subordinates_events.event_id
     WHERE events.id = $1;
   `;
 

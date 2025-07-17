@@ -20,19 +20,14 @@ import { getEventsByOrganizer } from "#db/queries/events";
 import requireOrganizer from "#middleware/requireOrganizer";
 import requireAdmin from "#middleware/requireAdmin";
 import requireBody from "#middleware/requireBody";
+import { getUserById } from "#db/queries/users";
 
 rostersRouter.use(requireUser);
 
-rostersRouter.get("/", async (req, res, next) => {
+rostersRouter.get("/",
+  async (req, res) => {
   const { id: userId, account_type: accountType } = req.user;
-  const { eventId } = req.query;
-  if (!eventId) {
-    return res.status(400).send("Missing Event Id");
-  }
-  const event = await getEventById(eventId);
-  if (!event) {
-    return res.status(404).send("Event Not Found");
-  }
+  const { id: eventId } = req.event;
 
   if (accountType === "org") {
     const organizedEvents = await getEventsByOrganizer(userId);
@@ -45,6 +40,7 @@ rostersRouter.get("/", async (req, res, next) => {
   }
 
   if (accountType === "man") {
+    console.log("hi");
     const managedEvents = await getEventsByManagerId(userId);
     const isManagerForThisEvent = managedEvents.some(
       (e) => e.id === parseInt(eventId)
@@ -57,23 +53,20 @@ rostersRouter.get("/", async (req, res, next) => {
   let roster;
   switch (accountType) {
     case "org":
-      roster = [
-        await getManagersByEventId(eventId),
-        await getSubordinatesByEventId(eventId),
-      ];
+      roster = {
+        managers: await getManagersByEventId(eventId),
+        subordinates: await getSubordinatesByEventId(eventId),
+      };
       break;
     case "man":
-      roster = await getSubordinatesByManagerId(eventId);
+      roster = {subordinates: await getSubordinatesByManagerId(userId)};
       break;
     case "sub":
       roster = res.status(403).send("You do not have access to the roster");
-      break;
   }
+  console.log(roster);
   return res.send(roster);
 });
-
-rostersRouter.use(requireAdmin);
-
 rostersRouter.post(
   "/",
   requireBody(["eventId", "userId", "managerId"]),
@@ -108,12 +101,11 @@ rostersRouter.post(
     }
   }
 );
-
 rostersRouter.delete(
   "/",
   requireBody(["userId"]),
   requireOrganizer,
-  async (req, res, next) => {
+  async (req, res) => {
     const { userId } = req.body;
 
     const user = await getUserById(userId);
@@ -145,25 +137,35 @@ rostersRouter.delete(
   }
 );
 
-rostersRouter.get("/:manager", async (req, res) => {
-  const managerId = parseInt(req.params.manager);
-  if (isNaN(managerId)) {
-    return res.status(404).send("Manager not found");
-  }
-  const managerRoster = await getSubordinatesByManagerId(managerId);
-  return res.status(200).send(managerRoster);
-});
+rostersRouter
+  .route("/:userId")
+  .get(
+    requireAdmin,
+    async (req, res) => {
+      const {userId} = req.params;
+      const user = await getUserById(userId);
+      res.send(user);
+  })
 
-rostersRouter.put("/:manager", async (req, res) => {
-  const { newManagerId, oldManagerId, eventId } = req.body;
-  const requesterId = req.user.id;
-  const event = await getEventById(eventId);
-  if (!event) {
-    return res.status(404).send("Event not found");
-  }
-  if (event.organizer_id !== requesterId) {
-    return res.status(403).send("You are not the organizer for this event");
-  }
-  await updateSubordinateManagerByManagerId(newManagerId, oldManagerId);
-  return res.status(200).send("Updated");
-});
+// rostersRouter.get("/:manager", async (req, res) => {
+//   const managerId = parseInt(req.params.manager);
+//   if (isNaN(managerId)) {
+//     return res.status(404).send("Manager not found");
+//   }
+//   const managerRoster = await getSubordinatesByManagerId(managerId);
+//   return res.status(200).send(managerRoster);
+// });
+
+// rostersRouter.put("/:manager", async (req, res) => {
+//   const { newManagerId, oldManagerId, eventId } = req.body;
+//   const requesterId = req.user.id;
+//   const event = await getEventById(eventId);
+//   if (!event) {
+//     return res.status(404).send("Event not found");
+//   }
+//   if (event.organizer_id !== requesterId) {
+//     return res.status(403).send("You are not the organizer for this event");
+//   }
+//   await updateSubordinateManagerByManagerId(newManagerId, oldManagerId);
+//   return res.status(200).send("Updated");
+// });
