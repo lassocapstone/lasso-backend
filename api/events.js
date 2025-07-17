@@ -104,7 +104,7 @@ router
 
 import tasksRouter from "#api/tasks";
 import alertsRouter from "#api/alerts";
-// import rosterRouter from "#api/roster";
+import rosterRouter from "#api/roster";
 router.use("/:eventId/tasks", requireEvent, tasksRouter);  
 router.use("/:eventId/alerts", requireEvent, alertsRouter);
-// router.use("/:eventId/roster", requireEvent, rosterRouter);
+router.use("/:eventId/roster", requireEvent, rosterRouter);
