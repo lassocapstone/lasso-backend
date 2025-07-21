@@ -23,7 +23,9 @@ async function seed() {
     "testOrg",
     "password",
     "org",
-    "5555555555"
+    "5555555555",
+    "Event organizer",
+    true
   );
 
    const testManager = await createUser(
@@ -31,7 +33,9 @@ async function seed() {
     "testMan",
     "password",
     "man",
-    "5555555555"
+    "5555555555",
+    "Event manager",
+    true
   );
 
    const testSubordinate = await createUser(
@@ -39,7 +43,9 @@ async function seed() {
     "testSub",
     "password",
     "sub",
-    "5555555555"
+    "5555555555",
+    "Event member",
+    true
   );
 
   await createUser(

@@ -47,7 +47,7 @@ router
       account_type,
       contact_number,
       role,
-      status,
+      status ? status : true,
       emergency_contact_id);
     const token = await createToken({ id: user.id });
     res.status(201).send(token);
