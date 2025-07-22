@@ -159,6 +159,7 @@ async function seed() {
   await createSubordinatesEvents(13, 1, testManager.id);
   await createSubordinatesEvents(15, 1, 2);
   await createSubordinatesEvents(16, 1, 2);
+  await createSubordinatesEvents(17, 1, 2);
 
   await createSubordinatesEvents(6, 2, 3);
 }
