@@ -28,7 +28,7 @@ async function seed() {
     true
   );
 
-   const testManager = await createUser(
+  const testManager = await createUser(
     "Ricardo H. Coupons",
     "testMan",
     "password",
@@ -38,7 +38,7 @@ async function seed() {
     true
   );
 
-   const testSubordinate = await createUser(
+  const testSubordinate = await createUser(
     "Leeroy Jenkins",
     "testSub",
     "password",
@@ -97,14 +97,14 @@ async function seed() {
   //alerts have:
   //is_okay, name, message, event_id, sender_id
   await createAlert(
-    "true", 
-    "stairs hard", 
-    "bobby fell down the stairs", 
+    "true",
+    "stairs hard",
+    "bobby fell down the stairs",
     1,
     testOrganizer.id,
     testManager.id
   );
-  
+
   await createAlert(
     "true",
     "stairs super hard",
@@ -114,11 +114,11 @@ async function seed() {
     testManager.id
   );
   await createAlert(
-    "false", 
-    "bad stairs", 
-    "sally fell down the stairs", 
+    "false",
+    "bad stairs",
+    "sally fell down the stairs",
     1,
-    testOrganizer.id, 
+    testOrganizer.id,
     3
   );
 
@@ -142,8 +142,24 @@ async function seed() {
   );
 
   await createManagersEvents(testManager.id, 1);
-  await createManagersEvents(3, 2);
+  await createManagersEvents(2, 1);
+  await createManagersEvents(3, 1);
 
   await createSubordinatesEvents(testSubordinate.id, 1, 2);
+  await createSubordinatesEvents(4, 1, 2);
+  await createSubordinatesEvents(5, 1, 2);
+  await createSubordinatesEvents(6, 1, 2);
+  await createSubordinatesEvents(7, 1, 3);
+  await createSubordinatesEvents(8, 1, 3);
+  await createSubordinatesEvents(9, 1, 3);
+  await createSubordinatesEvents(10, 1, 3);
+  await createSubordinatesEvents(11, 1, 3);
+  await createSubordinatesEvents(12, 1, testManager.id);
+  await createSubordinatesEvents(14, 1, testManager.id);
+  await createSubordinatesEvents(13, 1, testManager.id);
+  await createSubordinatesEvents(15, 1, 2);
+  await createSubordinatesEvents(16, 1, 2);
+  await createSubordinatesEvents(17, 1, 2);
+
   await createSubordinatesEvents(6, 2, 3);
 }
