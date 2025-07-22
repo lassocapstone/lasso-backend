@@ -141,12 +141,10 @@ async function seed() {
     "count your group members and report all good on task"
   );
 
-  await createManagersEvents(testManager.id, 1);
+  await createManagersEvents(4, 1);
   await createManagersEvents(2, 1);
   await createManagersEvents(3, 1);
 
-  await createSubordinatesEvents(testSubordinate.id, 1, 2);
-  await createSubordinatesEvents(4, 1, 2);
   await createSubordinatesEvents(5, 1, 2);
   await createSubordinatesEvents(6, 1, 2);
   await createSubordinatesEvents(7, 1, 3);
@@ -154,9 +152,9 @@ async function seed() {
   await createSubordinatesEvents(9, 1, 3);
   await createSubordinatesEvents(10, 1, 3);
   await createSubordinatesEvents(11, 1, 3);
-  await createSubordinatesEvents(12, 1, testManager.id);
-  await createSubordinatesEvents(14, 1, testManager.id);
-  await createSubordinatesEvents(13, 1, testManager.id);
+  await createSubordinatesEvents(12, 1, 4);
+  await createSubordinatesEvents(14, 1, 4);
+  await createSubordinatesEvents(13, 1, 4);
   await createSubordinatesEvents(15, 1, 2);
   await createSubordinatesEvents(16, 1, 2);
 
